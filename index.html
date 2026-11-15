@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b5fff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Perfusión">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Calculadora de velocidad de perfusión</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--txt:#14181f;--mut:#5b6472;--line:#d9dee6;--acc:#0b5fff;--ok:#0a7a45;--err:#b42318;--warn:#b54708}
+  @media (prefers-color-scheme:dark){:root{--bg:#10141a;--card:#181d25;--txt:#e8ecf2;--mut:#9aa4b2;--line:#2b3340;--acc:#6aa0ff;--ok:#4cc38a;--err:#ff7b72;--warn:#f5a524}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}
+  main{max-width:520px;margin:0 auto}
+  h1{font-size:24px;font-weight:800;margin:4px 0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  label{display:block;font-size:16px;font-weight:700;color:var(--txt);margin:16px 0 6px;padding-left:10px;border-left:4px solid var(--acc)}
+  .sec{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin:0 0 4px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  .sec+label{margin-top:12px}
+  .sec.n2,.sec.n3{margin-top:24px}
+  .sec b{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--acc);color:var(--bg);font-size:13px}
+  .row{display:flex;gap:8px}
+  input,select{width:100%;font:inherit;font-size:18px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)}
+  input:focus,select:focus{outline:2px solid var(--acc);border-color:var(--acc)}
+  select{width:auto;min-width:92px}
+  .full{width:100%}
+  .row input{min-width:0;flex:1 1 0}
+  #du{flex:0 0 auto;width:150px;min-width:150px;font-size:16px;padding-right:6px}
+  #ud{flex:0 0 auto;width:92px}
+  .btn{font:inherit;font-size:15px;font-weight:700;padding:10px 14px;border-radius:10px;border:2px solid var(--acc);background:transparent;color:var(--acc);cursor:pointer;width:100%}
+  .btn.del{border-color:var(--err);color:var(--err)}
+  .rn{margin-top:10px;border:2px solid var(--warn);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--txt)}
+  .rn.avoid{border-color:var(--err)}
+  .rn summary{cursor:pointer;font-weight:700;color:var(--warn)}
+  .rn.avoid summary{color:var(--err)}
+  .rn table{font-size:13px;margin-top:6px}
+  .rn td:last-child{text-align:right}
+  .al.rnal{color:var(--warn);border-color:var(--warn)}
+  .warnbox{margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--err);color:var(--err);font-size:13px}
+  .res{font-size:13px;color:var(--mut)}
+  .big{font-size:40px;font-weight:700;color:var(--acc);line-height:1.1;margin:2px 0 2px}
+  .big small{font-size:18px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  td{padding:7px 0;border-top:1px solid var(--line)}
+  td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .err{color:var(--err);font-size:14px}
+  .note{font-size:12px;color:var(--mut)}
+  .al{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid var(--line)}
+  .al.ok{color:var(--ok);border-color:var(--ok)}
+  .al.warn{color:var(--err);border-color:var(--err)}
+  .al.neu{color:var(--mut)}
+  code{font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Velocidad de perfusión (mL/h)</h1>
+
+  <div class="card">
+    <div class="sec"><b>1</b>Mezcla y fármaco</div>
+    <label for="mezcla">Mezcla del hospital (Listado de perfusiones 2026)</label>
+    <select id="mezcla" class="full"></select>
+    <div id="mnote" class="note" style="margin-top:6px"></div>
+
+    <label for="farmaco">Fármaco (para el rango habitual)</label>
+    <select id="farmaco" class="full"></select>
+    <div id="rango" class="note" style="margin-top:6px"></div>
+    <div id="manual" class="row" style="display:none;margin-top:8px">
+      <input id="rmin" type="text" inputmode="decimal" autocomplete="off" placeholder="Rango mín">
+      <input id="rmax" type="text" inputmode="decimal" autocomplete="off" placeholder="Rango máx">
+    </div>
+    <div id="gwrap" style="display:none;margin-top:8px">
+      <button id="gbtn" type="button" class="btn">Guardar rango en la base de datos</button>
+      <div id="gmsg" class="note" style="margin-top:6px"></div>
+    </div>
+
+    <div class="sec n2"><b>2</b>Paciente</div>
+    <label for="peso">Peso del paciente (kg)</label>
+    <input id="peso" type="text" inputmode="decimal" autocomplete="off" placeholder="p. ej. 70">
+
+    <div class="sec n3"><b>3</b>Mezcla preparada y dosis</div>
+    <label for="cant">Cantidad de fármaco en la mezcla</label>
+    <div class="row">
+      <input id="cant" type="text" inputmode="decimal" autocomplete="off" placeholder="p. ej. 4">
+      <select id="ud"><option value="mg">mg</option><option value="mcg">mcg</option><option value="UI">UI</option><option value="mEq">mEq</option></select>
+    </div>
+
+    <label for="vol">Volumen total de la mezcla (mL)</label>
+    <input id="vol" type="text" inputmode="decimal" autocomplete="off" placeholder="p. ej. 250">
+    <div class="note" style="margin-top:4px">Volumen final de la solución (fármaco + suero).</div>
+
+    <label for="dosis">Dosis deseada</label>
+    <div class="row">
+      <input id="dosis" type="text" inputmode="decimal" autocomplete="off" placeholder="p. ej. 0,1">
+      <select id="du"></select>
+    </div>
+  </div>
+
+  <div class="card" id="out" aria-live="polite">
+    <div class="res">Introduce peso, cantidad, volumen y dosis.</div>
+  </div>
+
+  <p class="note">
+    Velocidad (mL/h) = dosis por hora ÷ concentración. Con unidades /kg se multiplica por el peso; con /min por 60.<br>
+    Los rangos proceden de fichas técnicas AEMPS (CIMA) solo cuando se indica fuente; si no hay rango cargado, introdúcelo a mano.<br>
+    Las mezclas reproducen el listado del hospital tal cual está escrito. Verifica siempre con el protocolo del centro y con una segunda persona.
+  </p>
+</main>
+
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  function num(s){
+    s=String(s).trim().replace(',','.');
+    if(s===''||!/^\d*\.?\d+$|^\d+\.$/.test(s)) return NaN;
+    return parseFloat(s);
+  }
+  function f(x,d){
+    var s=x.toFixed(d);
+    if(s.indexOf('.')>=0) s=s.replace(/0+$/,'').replace(/\.$/,'');
+    return s.replace('.',',');
+  }
+  // Unidades de dosis: c=clase (m masa, u UI, e mEq), f=factor a base (mcg / UI / mEq), kg=por kg, t=minutos->h
+  var U={
+    'mcg/kg/min':{c:'m',f:1,kg:1,t:60},'mcg/kg/h':{c:'m',f:1,kg:1,t:1},'mg/kg/h':{c:'m',f:1000,kg:1,t:1},
+    'ng/kg/min':{c:'m',f:0.001,kg:1,t:60},'mcg/min':{c:'m',f:1,kg:0,t:60},'mg/min':{c:'m',f:1000,kg:0,t:60},
+    'mg/h':{c:'m',f:1000,kg:0,t:1},'mcg/h':{c:'m',f:1,kg:0,t:1},
+    'UI/h':{c:'u',f:1,kg:0,t:1},'UI/min':{c:'u',f:1,kg:0,t:60},'UI/kg/h':{c:'u',f:1,kg:1,t:1},
+    'mEq/h':{c:'e',f:1,kg:0,t:1}
+  };
+  var AU={mg:{c:'m',f:1000},mcg:{c:'m',f:1},UI:{c:'u',f:1},mEq:{c:'e',f:1}};
+  Object.keys(U).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;$('du').appendChild(o)});
+  function perH(dose,un,peso){var u=U[un];return dose*u.f*(u.kg?peso:1)*u.t}   // base/h
+
+  // r: rango habitual en la unidad u; ext: [mín,máx] descritos aparte en ficha; src: fichas AEMPS (CIMA). r=null: sin rango cargado.
+  var D={
+    dobutamina:{n:'Dobutamina',u:'mcg/kg/min',r:[2.5,10],ext:[0.5,40],txt:'Inicio 2,5; la mayoría responde a 2,5–10; ocasionalmente 0,5; raramente hasta 40.',src:'CIMA 61952 y 85914'},
+    dopamina:{n:'Dopamina',u:'mcg/kg/min',r:[5,20],ext:[null,50],maxRec:20,txt:'Inicio 2–5; mantenimiento 5–20; máxima recomendada 20; casos graves hasta 50.',src:'CIMA 55454 y 90395'},
+    noradrenalina:{n:'Noradrenalina (base)',u:'mcg/kg/min',r:[0.05,1],ext:[null,1],txt:'Como base: inicio 0,05–0,15; tablas hasta 1. Tartrato = 2 × base.',src:'CIMA 89183, 86179, 85937 y 70000'},
+    milrinona:{n:'Milrinona',u:'mcg/kg/min',r:[0.375,0.75],ext:[null,0.75],txt:'Mantenimiento 0,375–0,75 (reducir en insuficiencia renal).',src:'CIMA 58849'},
+    lidocaina:{n:'Lidocaína',u:'mcg/kg/min',r:[20,50],txt:'Arritmias ventriculares, mantenimiento: 20–50 mcg/kg/min (≈1–4 mg/min). Otra sección de la misma ficha indica 10–50.',src:'CIMA 44792'},
+    midazolam:{n:'Midazolam',u:'mg/kg/h',r:[0.03,0.2],txt:'Sedación en UCI, adultos, mantenimiento 0,03–0,2 mg/kg/h.',src:'CIMA 84338 y 68898'},
+    ntg:{n:'Nitroglicerina',u:'mcg/min',r:[10,200],txt:'Dosis usual de adultos 10–200 mcg/min (en cirugía a veces >400). La ficha de Solinitrina Fuerte indica efecto habitual a 50–100 mcg/min y 2–8 mg/h en angina grave/IAM.',src:'CIMA 55332 y 57127'},
+    nitroprusiato:{n:'Nitroprusiato',u:'mcg/kg/min',r:[0.5,8],ext:[null,8],txt:'Dosis media 3 (0,5–8). Hipotensión controlada en anestesia: máx. 1,5. Si no hay control tras 10 min a 8, suspender. Riesgo de cianuro por encima de 2 en tratamientos prolongados.',src:'CIMA 54575'},
+    propofol:{n:'Propofol',u:'mg/kg/h',r:[0.3,4],ext:[null,4],txt:'Sedación en UCI (adultos ventilados): 0,3–4,0 mg/kg/h; no se recomiendan velocidades mayores de 4.',src:'CIMA 62134 y 77590'},
+    remifentanilo:{n:'Remifentanilo (UCI)',u:'mcg/kg/min',r:[0.006,0.74],ext:[null,0.74],txt:'Analgesia en UCI con ventilación: inicio 0,1–0,15; intervalo 0,006–0,74 mcg/kg/min.',src:'CIMA 61488'},
+    terlipresina:{n:'Terlipresina (perfusión continua)',u:'mg/h',r:[2/24,12/24],txt:'Perfusión continua: inicio 2 mg/24 h, hasta máximo 12 mg/24 h (0,083–0,5 mg/h). Síndrome hepatorrenal tipo 1.',src:'EMA/AEMPS (referral art. 31) y CIMA 72359'},
+    urapidil:{n:'Urapidil',u:'mg/h',r:[9,180],txt:'Prospecto: perfusión de mantenimiento 9–30 mg/h (perioperatorio) y 60–180 mg/h (urgencias hipertensivas). Rango amplio: confirma la indicación.',src:'CIMA 60241 (prospecto)'},
+    vasopresina:{n:'Vasopresina (argipresina)',u:'UI/min',r:[0.01,0.03],txt:'Shock séptico: 0,01 UI/min, ajustable cada 15–20 min hasta 0,03; dosis mayores solo en urgencia.',src:'CIMA 83405'},
+    fentanilo:{n:'Fentanilo (perfusión)',u:'mcg/kg/min',r:[0.05,0.1],txt:'Ficha (pacientes ventilados): mantenimiento ≈0,1 mcg/kg/min tras carga; 0,05–0,08 si se requiere respiración espontánea.',src:'CIMA 84102 (Fentanilo Ethypharm)'},
+    dexmedetomidina:{n:'Dexmedetomidina',u:'mcg/kg/h',r:[0.2,1.4],ext:[null,1.4],txt:'Sedación UCI: inicio 0,7; rango 0,2–1,4 mcg/kg/h; no exceder 1,4.',src:'CIMA 84826'},
+    adrenalina:{n:'Adrenalina',u:'mcg/kg/min'},insulina:{n:'Insulina',u:'UI/h'},heparina:{n:'Heparina Na',u:'UI/h'},
+    landiolol:{n:'Landiolol',u:'mcg/kg/min'},levosimendan:{n:'Levosimendán',u:'mcg/kg/min'},naloxona:{n:'Naloxona',u:'mg/h'},
+    omeprazol:{n:'Omeprazol',u:'mg/h'},procainamida:{n:'Procainamida',u:'mg/min'},aleudrina:{n:'Isoprenalina (Aleudrina)',u:'mcg/min'},
+    amiodarona:{n:'Amiodarona',u:'mg/h'},angiotensina:{n:'Angiotensina II',u:'ng/kg/min'},argatroban:{n:'Argatrobán',u:'mcg/kg/min'},
+    bivalirudina:{n:'Bivalirudina',u:'mg/kg/h'},cangrelor:{n:'Cangrelor',u:'mcg/kg/min'},cisatracurio:{n:'Cisatracurio',u:'mcg/kg/min'},
+    clevidipino:{n:'Clevidipino',u:'mg/h'},esmolol:{n:'Esmolol',u:'mcg/kg/min'},fenilefrina:{n:'Fenilefrina',u:'mcg/min'},
+    flumazenilo:{n:'Flumazenilo',u:'mg/h'},furosemida:{n:'Furosemida',u:'mg/h'},bicarbonato:{n:'Bicarbonato 1M (purga Impella)',u:'mEq/h'},
+    otro:{n:'Otro (rango manual)',u:'mg/h'}
+  };
+  // Mezclas del listado 2026: [etiqueta, fármaco, cantidad, unidad, volumen mL, nota]
+  var M=[
+    ['Heparina Na 25.000 UI / 500 mL (50 UI/mL)','heparina',25000,'UI',500,'SSF o GDO5%'],
+    ['Heparina Na 50.000 UI / 500 mL (100 UI/mL)','heparina',50000,'UI',500,'SSF o GDO5%'],
+    ['Insulina 100 UI / 100 mL (1 UI/mL)','insulina',100,'UI',100,'Nevera. SSF'],
+    ['Landiolol 300 mg / 50 mL','landiolol',300,'mg',50,'Siempre solo por CVC y VVP'],
+    ['Levosimendán 12,5 mg / 250 mL (0,05 mg/mL)','levosimendan',12.5,'mg',250,'Nevera. En 24 h'],
+    ['Lidocaína 1250 mg / 500 mL (2,5 mg/mL)','lidocaina',1250,'mg',500,'SGDO5%'],
+    ['Milrinona 20 mg / 100 mL (0,2 mg/mL)','milrinona',20,'mg',100,'SGDO5% o SSF'],
+    ['Midazolam 200 mg / 100 mL (2 mg/mL)','midazolam',200,'mg',100,'SSF'],
+    ['Naloxona 4 mg / 100 mL (0,04 mg/mL)','naloxona',4,'mg',100,'4 ampollas. SSF o SGDO5%'],
+    ['NTG 25 mg / 250 mL (0,1 mg/mL)','ntg',25,'mg',250,'Preparada en nevera. SGDO5%'],
+    ['Nitroprusiato 50 mg / 500 mL (0,1 mg/mL)','nitroprusiato',50,'mg',500,'Fotosensible. Cambio de perfusión y sistema c/24 h'],
+    ['Noradrenalina base 15 mg / 250 mL (0,06 mg/mL) estándar','noradrenalina',15,'mg',250,'SGDO5%'],
+    ['Noradrenalina base 30 mg / 250 mL (0,12 mg/mL) doble','noradrenalina',30,'mg',250,'SGDO5%'],
+    ['Omeprazol 100 mg / 250 mL (0,4 mg/mL)','omeprazol',100,'mg',250,'SSF o SGDO5%'],
+    ['Procainamida (Biocoryl) 900 mg / 250 mL','procainamida',900,'mg',250,'Vial 10 mL = 1 g: bolo 100 mg aparte; resto (9 mL) en 250 mL SGDO5% en 1–2 h según orden médica. Volumen total real ≈ 259 mL'],
+    ['Propofol 2% 1000 mg / 50 mL (20 mg/mL)','propofol',1000,'mg',50,'Vial 50 mL. Cambiar sistema y frasco c/12 h'],
+    ['Remifentanilo 5 mg / 100 mL (0,05 mg/mL)','remifentanilo',5,'mg',100,'Armario de estupefacientes. SSF'],
+    ['Remifentanilo 5 mg / 250 mL (0,02 mg/mL)','remifentanilo',5,'mg',250,'Armario de estupefacientes. SSF'],
+    ['Terlipresina 2 mg / 100 mL (0,02 mg/mL)','terlipresina',2,'mg',100,'Nevera, pedir a farmacia. Listado: a pasar en 24 h a 4 mL/h'],
+    ['Urapidil (Elgadil) 250 mg / 250 mL (1 mg/mL)','urapidil',250,'mg',250,'5 ampollas de 50 mg/10 mL. SSF'],
+    ['Vasopresina 40 UI / 50 mL (0,8 UI/mL)','vasopresina',40,'UI',50,'Nevera. SGDO5%'],
+    ['Impella purga: Bicarbonato 1M 25 mEq / 1000 mL','bicarbonato',25,'mEq',1000,'2,5 ampollas en GDO5%. Preguntar siempre al médico'],
+    ['Impella purga: Heparina Na 12.500 UI / 500 mL','heparina',12500,'UI',500,'GDO5%. Preguntar siempre al médico'],
+    ['Adrenalina 15 mg / 250 mL (0,06 mg/mL)','adrenalina',15,'mg',250,'SGDO5%'],
+    ['Aleudrina 1 mg / 250 mL (4 mcg/mL)','aleudrina',1,'mg',250,'5 ampollas = 1 mg. SGDO5%. El listado añade «BOMBA 2MG - 4 mcg/ml» (poco claro)'],
+    ['Amiodarona (Trangorex) 900 mg / 250 mL (3,6 mg/mL)','amiodarona',900,'mg',250,'GDO5%. Bolo 300 mg en 100 mL en 30 min, no en bomba'],
+    ['Angiotensina II 2,5 mg / 250 mL','angiotensina',2.5,'mg',250,'Nevera. SSF. No compatible con Dx5%. Solo CVC'],
+    ['Argatrobán 250 mg / 250 mL','argatroban',250,'mg',250,'SSF o SGDO5%. Estable 14 días'],
+    ['Bivalirudina 250 mg / 50 mL (5 mg/mL)','bivalirudina',250,'mg',50,'SGDO5%. Cambiar c/24 h con fecha y hora'],
+    ['Cangrelor: listado dice «50 MCG» (1 vial) / 250 mL','cangrelor',50,'mcg',250,'REVISAR: el listado pone 50 MCG; podría ser 50 mg. Valor cargado tal cual está escrito'],
+    ['Cisatracurio (Nimbex) 200 mg / 100 mL (2 mg/mL)','cisatracurio',200,'mg',100,'Nevera. SSF'],
+    ['Clevidipino 25 mg / 50 mL (0,5 mg/mL)','clevidipino',25,'mg',50,'Nevera. Cambiar c/12 h. Siempre solo por CVC y VVP'],
+    ['Dexmedetomidina 1000 mcg / 250 mL (4 mcg/mL)','dexmedetomidina',1000,'mcg',250,'SSF o SGDO5%'],
+    ['Dobutamina 500 mg / 250 mL estándar','dobutamina',500,'mg',250,'Preparada en nevera. SGDO5%'],
+    ['Dobutamina 1000 mg / 250 mL doble','dobutamina',1000,'mg',250,'Preparada en nevera. SGDO5%'],
+    ['Dopamina 400 mg / 250 mL (1,6 mg/mL) estándar','dopamina',400,'mg',250,'SGDO5%'],
+    ['Dopamina 800 mg / 250 mL (3,2 mg/mL) doble','dopamina',800,'mg',250,'SGDO5%'],
+    ['Esmolol 2500 mg / 250 mL (10 mg/mL)','esmolol',2500,'mg',250,'Preparada. SGDO5%'],
+    ['Fenilefrina 10 mg / 100 mL','fenilefrina',10,'mg',100,'1 ampolla. SSF'],
+    ['Fentanest 7 amp = 1,05 mg / 100 mL','fentanilo',1050,'mcg',100,'REVISAR: 7 amp (21 mL; 0,05 mg/mL) = 1,05 mg → 10,5 mcg/mL; el listado indica 0,01 mg/mL. Cargado 1050 mcg en 100 mL'],
+    ['Flumazenilo 4 mg / 100 mL (0,04 mg/mL)','flumazenilo',4,'mg',100,'SSF o SGDO5%'],
+    ['Furosemida 250 mg / 100 mL (2,5 mg/mL)','furosemida',250,'mg',100,'SSF. Fotosensible: proteger de la luz + sistema opaco']
+  ];
+  var KEY='perf_rangos_v1', S={};
+  try{S=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){S={}}
+  function persist(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
+  var sel=$('mezcla'), fs=$('farmaco');
+  var o=document.createElement('option');o.value='-1';o.textContent='Manual (introducir cantidad y volumen)';sel.appendChild(o);
+  M.forEach(function(m,i){var e=document.createElement('option');e.value=i;e.textContent=m[0];sel.appendChild(e)});
+  Object.keys(D).forEach(function(k){var e=document.createElement('option');e.value=k;e.textContent=D[k].n;fs.appendChild(e)});
+  fs.value='dobutamina';
+
+  // Ajustes por insuficiencia renal según fichas técnicas AEMPS (CIMA). sev: dose (ajustar), avoid (evitar/contraindicado), caution (precaución)
+  var RENAL={
+    milrinona:{sev:'dose',short:'reducir la tasa de mantenimiento según el aclaramiento de creatinina (la dosis de carga no cambia).',
+      rows:[['ClCr 5 mL/min/1,73 m²','0,20 mcg/kg/min'],['ClCr 10','0,23 mcg/kg/min'],['ClCr 20','0,28 mcg/kg/min'],['ClCr 30','0,33 mcg/kg/min'],['ClCr 40','0,38 mcg/kg/min'],['ClCr 50','0,43 mcg/kg/min (valor de Pediamecum; no verificado en la ficha)'],['ClCr > 50','pauta estándar']],
+      src:'CIMA 58849 (tabla hasta ClCr 40); ClCr 50 según Pediamecum'},
+    bivalirudina:{sev:'dose',short:'VFG 30–59: perfusión 1,4 mg/kg/h en ICP; VFG < 30 o diálisis: contraindicada.',
+      rows:[['VFG 30–59 mL/min (ICP / laboratorio de cateterización)','1,4 mg/kg/h (en lugar de 1,75)'],['SCA (0,25 mg/kg/h), IR leve o moderada','sin ajuste'],['VFG < 30 mL/min o diálisis','contraindicada']],
+      src:'CIMA 80912 y 81587'},
+    levosimendan:{sev:'avoid',short:'ClCr < 30 mL/min: contraindicado. IR leve o moderada: precaución, sin ajuste de dosis.',
+      rows:[['ClCr < 30 mL/min','contraindicado'],['IR leve o moderada','precaución; sin ajuste de dosis; monitorizar al menos 5 días']],
+      src:'CIMA 88919'},
+    terlipresina:{sev:'avoid',short:'creatinina basal ≥ 442 µmol/L (5,0 mg/dL) en síndrome hepatorrenal tipo 1: evitar salvo que el beneficio supere el riesgo.',
+      rows:[['SHR tipo 1, creatinina basal ≥ 442 µmol/L (5,0 mg/dL)','evitar'],['Insuficiencia renal crónica','precaución']],
+      src:'CIMA 72359'},
+    midazolam:{sev:'caution',short:'ClCr < 30 mL/min: sedación más pronunciada y prolongada posible; titular con cuidado (la ficha no da cifras).',
+      rows:[['ClCr < 30 mL/min','sedación más pronunciada y prolongada; titular según efecto']],src:'CIMA 84338'},
+    nitroprusiato:{sev:'caution',short:'IR grave: precaución y vigilar tiocianato; contraindicada la hipotensión controlada en anestesia si hay enfermedad renal grave.',
+      rows:[['IR o hepática, tratamiento > 3 días o dosis > 4 mcg/kg/min','controlar tiocianato en sangre'],['Enfermedad renal grave','contraindicada la hipotensión inducida en anestesia']],src:'CIMA 54575'},
+    urapidil:{sev:'dose',short:'puede ser necesario reducir la dosis (la ficha no da cifras).',
+      rows:[['Disfunción renal','posible reducción de dosis, sin rango numérico en ficha'],['Propilenglicol (excipiente)','vigilancia en insuficiencia renal o hepática']],src:'CIMA 85873 y 76741'},
+    fentanilo:{sev:'dose',short:'considerar reducir la dosis y vigilar signos de toxicidad (la ficha no da cifras).',
+      rows:[['Trastorno / insuficiencia renal','considerar reducción de dosis; observar toxicidad']],src:'CIMA 84102 y 85456'},
+    procainamida:{sev:'dose',short:'se acumula: ajustar la dosis de forma individual (la ficha no da cifras).',
+      rows:[['Insuficiencia renal','niveles plasmáticos elevados con dosis convencionales; ajuste individual']],src:'CIMA 22971'},
+    lidocaina:{sev:'caution',short:'no requiere ajuste especial como norma; monitorizar acumulación de metabolitos. En IR grave puede ser necesario ajustar.',
+      rows:[['Insuficiencia renal','sin ajuste especial; vigilar toxicidad'],['IR grave','puede ser necesario ajustar la dosis']],src:'CIMA 44792'}
+  };
+  function renalBox(k){
+    var r=RENAL[k]; if(!r) return '';
+    var t='<table>'+r.rows.map(function(x){return '<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>'}).join('')+'</table>';
+    return '<details class="rn '+(r.sev==='avoid'?'avoid':'')+'"><summary>⚠ Insuficiencia renal: '+r.short+'</summary>'+t+'<div class="note" style="margin-top:6px">Fuente: '+r.src+'. Ajusta con la función renal real del paciente y tu protocolo.</div></details>';
+  }
+  function getRange(){
+    var k=fs.value,d=D[k];
+    if(d.r) return {r:d.r,ext:d.ext||[null,null],u:d.u,maxRec:d.maxRec};
+    if(S[k]) return {r:S[k].r,ext:[null,null],u:S[k].u,saved:true};
+    var a=num($('rmin').value),b=num($('rmax').value);
+    if(!(a>=0)||!(b>0)||a>b) return null;
+    return {r:[a,b],ext:[null,null],u:$('du').value,manual:true};
+  }
+  function onDrug(setUnit){
+    var k=fs.value,d=D[k],sv=(!d.r&&S[k])?S[k]:null;
+    if(setUnit!==false) $('du').value=sv?sv.u:d.u;
+    $('manual').style.display=(d.r||sv)?'none':'flex';
+    $('rmin').placeholder='Rango mín ('+$('du').value+')';$('rmax').placeholder='Rango máx ('+$('du').value+')';
+    var gb=$('gbtn');
+    $('gwrap').style.display=(d.r||k==='otro')?'none':'block';
+    if(sv){gb.textContent='Borrar rango guardado';gb.className='btn del';}
+    else{gb.textContent='Guardar rango en la base de datos';gb.className='btn';}
+    $('rango').innerHTML=d.r?('Rango habitual: <b>'+f(d.r[0],4)+' – '+f(d.r[1],4)+' '+d.u+'</b><br>'+d.txt+' (Fuente: '+d.src+')')
+      :sv?('Rango guardado por ti: <b>'+f(sv.r[0],4)+' – '+f(sv.r[1],4)+' '+sv.u+'</b><br>No procede de ficha técnica AEMPS: lo introdujiste tú.')
+      :'Sin rango cargado desde ficha técnica AEMPS para este fármaco: introduce el de tu protocolo y, si quieres, guárdalo.';
+    $('rango').innerHTML+=renalBox(k);
+    calc();
+  }
+  function onSave(){
+    var k=fs.value,d=D[k];
+    if(d.r||k==='otro') return;
+    if(S[k]){delete S[k];$('gmsg').textContent=persist()?'Rango borrado.':'No se pudo borrar (almacenamiento no disponible).';onDrug(false);return;}
+    var a=num($('rmin').value),b=num($('rmax').value);
+    if(!(a>=0)||!(b>0)||a>b){$('gmsg').textContent='Introduce un mínimo y un máximo válidos (mínimo ≤ máximo).';return;}
+    S[k]={r:[a,b],u:$('du').value};
+    var ok=persist();
+    $('rmin').value='';$('rmax').value='';
+    onDrug(false);
+    $('gmsg').textContent=ok?'Rango guardado en este dispositivo.':'No se pudo guardar: este navegador bloquea el almacenamiento.';
+  }
+  function onMix(){
+    var i=parseInt(sel.value,10);
+    if(i<0){$('mnote').textContent='';return calc();}
+    var m=M[i];
+    fs.value=m[1];$('cant').value=String(m[2]).replace('.',',');$('ud').value=m[3];$('vol').value=String(m[4]);
+    $('mnote').textContent=m[5];
+    onDrug(true);
+  }
+  function toManual(){ if(sel.value!=='-1'){sel.value='-1';$('mnote').textContent='';} calc(); }
+
+  function alerta(dosis,peso){
+    var r=getRange();
+    if(!r) return '<div class="al neu">Sin rango definido: introduce mín. y máx. para evaluar la dosis.</div>';
+    var un=$('du').value, ref=r.u;
+    var dn=perH(dosis,un,peso)/perH(1,ref,peso); // dosis en la unidad del rango
+    var lo=r.r[0],hi=r.r[1],eM=r.ext[1];
+    var rt=f(lo,4)+'–'+f(hi,4)+' '+ref, ds=f(dn,5)+' '+ref;
+    if(U[un].c!==U[ref].c) return '<div class="al neu">Rango no comparable con la unidad elegida.</div>';
+    if(eM!==null && dn>eM) return '<div class="al warn">⚠ Dosis ('+ds+') SUPERA el máximo descrito en ficha ('+f(eM,4)+' '+ref+').</div>';
+    if(r.maxRec && dn>r.maxRec) return '<div class="al warn">⚠ Dosis ('+ds+') supera el máximo recomendado ('+f(r.maxRec,4)+' '+ref+'); uso excepcional.</div>';
+    if(dn>hi*(1+1e-3)) return '<div class="al warn">⚠ Dosis ('+ds+') POR ENCIMA del rango habitual ('+rt+').</div>';
+    if(dn<lo*(1-1e-3)) return '<div class="al warn">⚠ Dosis ('+ds+') POR DEBAJO del rango habitual ('+rt+').</div>';
+    return '<div class="al ok">✔ Dosis ('+ds+') dentro del rango habitual ('+rt+').</div>';
+  }
+  function calc(){
+    var peso=num($('peso').value),cant=num($('cant').value),vol=num($('vol').value),dosis=num($('dosis').value),
+        out=$('out'),un=$('du').value,au=$('ud').value;
+    var vals=[$('peso').value,$('cant').value,$('vol').value,$('dosis').value];
+    if(vals.some(function(v){return v.trim()===''})){out.innerHTML='<div class="res">Introduce peso, cantidad, volumen y dosis.</div>';return;}
+    var bad=[];
+    if(!(peso>0))bad.push('peso');if(!(cant>0))bad.push('cantidad de fármaco');if(!(vol>0))bad.push('volumen');if(!(dosis>0))bad.push('dosis');
+    if(bad.length){out.innerHTML='<div class="err">Valor no válido o no positivo en: '+bad.join(', ')+'.</div>';return;}
+    if(AU[au].c!==U[un].c){out.innerHTML='<div class="err">La unidad de dosis ('+un+') no es compatible con la cantidad en '+au+'.</div>';return;}
+    var conc=cant*AU[au].f/vol;           // base/mL (mcg, UI o mEq)
+    var dh=perH(dosis,un,peso);           // base/h
+    var rate=dh/conc, rate1=Math.round(rate*10)/10;
+    var dReal=rate1*conc/perH(1,un,peso);
+    var c=U[un].c, concTxt;
+    if(c==='m') concTxt=f(conc,4)+' mcg/mL ('+f(conc/1000,6)+' mg/mL)';
+    else concTxt=f(conc,4)+' '+au+'/mL';
+    var hTxt=c==='m'?f(dh/1000,6)+' mg/h ('+f(dh,4)+' mcg/h)':f(dh,4)+' '+au+'/h';
+    out.innerHTML=
+      '<div class="sec" style="border:0;margin:0">Resultado</div>'+
+      '<div class="big">'+f(rate,2)+' <small>mL/h</small></div>'+
+      '<div class="res">Programar en bomba (0,1 mL/h): <b>'+f(rate1,1)+' mL/h</b> → dosis real '+f(dReal,5)+' '+un+'</div>'+
+      '<table>'+
+      '<tr><td>Concentración</td><td>'+concTxt+'</td></tr>'+
+      '<tr><td>Cantidad administrada por hora</td><td>'+hTxt+'</td></tr>'+
+      '<tr><td>Duración de la mezcla a esta velocidad</td><td>'+f(vol/rate,2)+' h</td></tr>'+
+      '</table>'+alerta(dosis,peso)+
+      (RENAL[fs.value]?'<div class="al rnal">⚠ Si hay insuficiencia renal: '+RENAL[fs.value].short+'</div>':'')+
+      (sel.value!=='-1'&&/REVISAR/.test(M[parseInt(sel.value,10)][5])?'<div class="warnbox">'+M[parseInt(sel.value,10)][5]+'</div>':'');
+  }
+  ['peso','dosis','rmin','rmax'].forEach(function(i){$(i).addEventListener('input',calc)});
+  ['cant','vol'].forEach(function(i){$(i).addEventListener('input',toManual)});
+  $('ud').addEventListener('change',toManual);
+  $('du').addEventListener('change',function(){onDrug(false)});
+  $('gbtn').addEventListener('click',onSave);
+  sel.addEventListener('change',onMix);
+  fs.addEventListener('change',function(){onDrug(true)});
+  onDrug(true);
+  window.__t={RENAL:RENAL,onDrug:onDrug,S:S,calc:calc,perH:perH,U:U,D:D,M:M,AU:AU};
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}</script>
+</body>
+</html>
